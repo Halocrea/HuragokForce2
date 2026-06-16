@@ -134,25 +134,62 @@ Further down, non-E results are all word salad: `"a for mascots root hobo"`, `"o
 
 ## Re-ranking by Phrase Coherence (rerank.py)
 
-The solver's score is purely per-word (word frequency + length bonus). It has no notion of whether the words make sense _together_. To address this, `rerank.py` adds a **bigram coherence score**, i.e. how likely is each word to follow the previous one in natural English.
+The solver's score is purely per-word (word frequency + length bonus). It has no notion of whether the words make sense _together_. To address this, `rerank.py` scores each phrase using a **KenLM 3-gram language model** trained on the NLTK Brown corpus (~57k sentences of general English). This gives real statistical n-gram probabilities rather than hand-tuned heuristics.
+
+The combined score = `word_score + 1.0 * (lm_score / num_words)`.
+
+### Setup
+
+The reranker requires a Python venv with `kenlm` and `nltk`, plus a pre-built language model (`brown_3gram.bin`). To rebuild from scratch:
 
 ```bash
+# 1. System dependencies (for building the KenLM lmplz binary)
+sudo apt install cmake libboost-all-dev
+
+# 2. Python venv
+python3 -m venv venv
+source venv/bin/activate
+
+# 3. Build & install KenLM Python bindings from source
+#    (the PyPI version doesn't support Python 3.14)
+git clone --depth 1 https://github.com/kpu/kenlm.git /tmp/kenlm_build
+cython --cplus /tmp/kenlm_build/python/kenlm.pyx
+pip install /tmp/kenlm_build
+
+# 4. Build the lmplz binary (needed to create the language model)
+#    Note: boost_system was removed in Boost 1.89+, so remove it from CMakeLists.txt
+sed -i '/^  system$/d' /tmp/kenlm_build/CMakeLists.txt
+mkdir /tmp/kenlm_build/build && cd /tmp/kenlm_build/build && cmake .. && make -j$(nproc)
+
+# 5. Generate the language model from NLTK Brown corpus
+pip install nltk
+python3 -c "import nltk; nltk.download('brown')"
+python3 -c "
+from nltk.corpus import brown
+with open('/tmp/brown_corpus.txt', 'w') as f:
+    for sent in brown.sents():
+        f.write(' '.join(w.lower() for w in sent) + '\n')
+"
+/tmp/kenlm_build/build/bin/lmplz -o 3 --text /tmp/brown_corpus.txt --arpa /tmp/brown_3gram.arpa
+/tmp/kenlm_build/build/bin/build_binary /tmp/brown_3gram.arpa brown_3gram.bin
+```
+
+### Usage
+
+```bash
+source venv/bin/activate
 python3 rerank.py results.txt
 python3 rerank.py results_no_e.txt
 ```
 
-The combined score = `word_score + 5.0 * average_bigram_probability`.
+### Example
 
-Example breakdown for the #1 result:
+Per-word breakdown for the #1 result:
 ```
 "the noticed i need were"
-  the->noticed   = -1.2  (plausible, but "the" usually precedes a noun)
-  noticed->i     = -1.2  (unusual <-> normally "noticed that I")
-  i->need        = -0.3  (very natural)
-  need->were     = -2.5  (grammatically broken)
+  the=-0.9/2g  noticed=-5.1/1g  i=-3.2/1g  need=-3.1/2g  were=-3.0/1g
 ```
-
-The bigram model is a hardcoded table of common English word transitions, not a full language model, but enough to distinguish real phrases from word salad. Re-ranked results in `reranked_results.txt`.
+Each entry shows `word=log10_prob/ngram_order`. The `/2g` means KenLM found a matching bigram context; `/1g` means it fell back to unigram. `[OOV]` flags words not in the training vocabulary. Re-ranked results in `reranked_results.txt`.
 
 ## Semantic Analysis (by AI agent)
 
