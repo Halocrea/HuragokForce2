@@ -1,5 +1,7 @@
 # HuragokForce2: Substitution Cipher Solver
 
+![Enhanced glyphs](enhanced-glyphs.png)
+
 A dictionary-driven substitution cipher solver for deciphering Halo 3: ODST subglyphs.
 
 Successor to [HuragokForce](https://github.com/user/HuragokForce), which used brute-force permutation + NTextCat language detection. This version is fundamentally different in approach and solves the two major problems of the original.
