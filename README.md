@@ -16,6 +16,7 @@ Tried to decipher the glyphs by another method. Was fun again. Still did not pro
 Why this could be interesting (likely isn't, though, manage your expectations): 
 * That string of glyphs can be fully seen when the Engineer is "merging" with Vergil, trying to communicate again but in a "corruped" way. 
 * Part of the story of ODST is an ONI agent (Dare) trying to get to Vergil because of an anomaly that was detected.
+* Another type of glyphs (Halopedia calls it the [small line type](https://www.halopedia.org/Forerunner_symbols#Small_line_type)) was effectively "deciphered" but it was noticed that there was a typo in its usage.
 
 => So with a bit of copium, this could be interpreted as _"They noticed I am here."_ or something like that.
 
@@ -174,3 +175,20 @@ As a final pass, the full results were reviewed by an AI agent (Claude) for sema
 ### Tier 3: Structural noise
 
 Most results in the "open [past-tense-verb] a need were/here" pattern (#21-50) are structural artifacts; the glyph pattern at positions 3-8 happens to match many past tense verbs, producing dozens of variations that share the same underlying structure.
+
+## Reversed Reading Direction (solver_reversed.py)
+
+In Sadie's Story, especially when Vergil is supposedly "broken" or "corrupted", some frames appear warped or mirrored. So the glyph sequence might actually need to be read in reverse. To cover this possibility, a reversed variant was run reading the sequence backwards:
+
+```
+Original: 0  1  2  3  4  0  5  6  2  7  5  3  2  2  7  8  2  9  2
+Reversed: 2  9  2  8  7  2  2  3  5  7  2  6  5  0  4  3  2  1  0
+```
+
+```bash
+python3 solver_reversed.py
+```
+
+**120,219 unique segmentations** found (vs 100,176 forward). The reversed sequence is structurally different: it starts and ends with glyph 2 (E), and has a double-E at positions 5-6, which heavily constrains what words can appear.
+
+Top results are phrases like `"eye cheep the a torpedo"`, `"even heel the stapler a"`, `"eye wheel the stabled a"`, etc. None form coherent English sentences. The reversed direction does not produce any more meaningful results than the forward reading, reinforcing that the original left-to-right reading is the more likely intended direction (if there is one at all).
